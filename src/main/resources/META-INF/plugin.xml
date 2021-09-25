@@ -6,16 +6,6 @@
     <!-- Product and plugin compatibility requirements -->
     <!-- https://plugins.jetbrains.com/docs/intellij/plugin-compatibility.html -->
     <depends>com.intellij.modules.platform</depends>
-
-    <!--    <extensions defaultExtensionNs="com.intellij">-->
-    <!--        <applicationService serviceImplementation="com.github.magixsource.intelliy.services.MyApplicationService"/>-->
-    <!--        <projectService serviceImplementation="com.github.magixsource.intelliy.services.MyProjectService"/>-->
-    <!--    </extensions>-->
-
-    <!--    <applicationListeners>-->
-    <!--        <listener class="com.github.magixsource.intelliy.listeners.MyProjectManagerListener"-->
-    <!--                  topic="com.intellij.openapi.project.ProjectManagerListener"/>-->
-    <!--    </applicationListeners>-->
     <extensions defaultExtensionNs="com.intellij">
         <applicationConfigurable parentId="tools" id="com.github.magixsource.intelliy.setting.YxSettingsConfigurable"
                                  instance="com.github.magixsource.intelliy.setting.YxSettingsConfigurable"

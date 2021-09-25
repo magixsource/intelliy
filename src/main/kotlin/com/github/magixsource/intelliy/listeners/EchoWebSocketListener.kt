@@ -1,4 +1,4 @@
-package com.github.magixsource.intelliy.idp
+package com.github.magixsource.intelliy.listeners
 
 import com.github.magixsource.intelliy.toolwindow.LogPanel
 import okhttp3.Response
@@ -7,7 +7,7 @@ import okhttp3.WebSocketListener
 import okio.ByteString
 
 /**
- * Echo sample
+ * Echo web socket listener
  */
 class EchoWebSocketListener(private val logPanel: LogPanel) : WebSocketListener() {
 
@@ -22,7 +22,7 @@ class EchoWebSocketListener(private val logPanel: LogPanel) : WebSocketListener(
 
     override fun onMessage(webSocket: WebSocket, bytes: ByteString) {
         // 输出到console
-        logPanel.logTail(bytes.utf8())
+        logPanel.render(bytes.utf8())
     }
 
     override fun onClosing(webSocket: WebSocket, code: Int, reason: String) {

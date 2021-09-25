@@ -1,4 +1,4 @@
-package com.github.magixsource.intelliy.idp
+package com.github.magixsource.intelliy.idp.model
 
 data class User(
     val id: Int,

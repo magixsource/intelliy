@@ -1,18 +1,15 @@
 package com.github.magixsource.intelliy.toolwindow;
 
-import com.github.magixsource.intelliy.idp.Env;
+import com.github.magixsource.intelliy.idp.model.Env;
 import com.github.magixsource.intelliy.idp.IdpService;
-import com.github.magixsource.intelliy.idp.Pod;
+import com.github.magixsource.intelliy.idp.model.Pod;
 import com.github.magixsource.intelliy.setting.YxSettings;
-import com.intellij.icons.AllIcons;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.SimpleToolWindowPanel;
 import com.intellij.ui.CollectionComboBoxModel;
 
 import javax.swing.*;
 import java.awt.event.ItemEvent;
-import java.text.SimpleDateFormat;
-import java.util.Date;
 import java.util.List;
 import java.util.Objects;
 
@@ -32,7 +29,11 @@ public class LogPanel extends SimpleToolWindowPanel {
 //    private Thread consoleThread = null;
     IdpService idpService = new IdpService(this);
 
-    public void logTail(String log) {
+    /**
+     * render log to console
+     * @param log log content
+     */
+    public void render(String log) {
         logTextArea.append(log);
         logTextArea.append("\n");
         // scroll down
@@ -59,16 +60,11 @@ public class LogPanel extends SimpleToolWindowPanel {
 //            }
 //        });
 
-
         clearButton.addActionListener(e -> {
             logTextArea.setText("");
         });
 
-//        this.initThread();
-        // consoleThread.start();
-
         initProject();
-
     }
 
     /**
@@ -78,22 +74,22 @@ public class LogPanel extends SimpleToolWindowPanel {
         String privateToken = Objects.requireNonNull(YxSettings.getInstance()).getPrivateToken();
         String baseApi = Objects.requireNonNull(YxSettings.getInstance().getBaseApi());
         // query projects by private token
-        List<com.github.magixsource.intelliy.idp.Project> list = idpService.getProjects(baseApi, privateToken);
+        List<com.github.magixsource.intelliy.idp.model.Project> list = idpService.getProjects(baseApi, privateToken);
         assert list != null;
         ComboBoxModel aModel = new CollectionComboBoxModel(list);
         projectComboBox.setModel(aModel);
         projectComboBox.addItemListener(e -> {
             if (e.getStateChange() == ItemEvent.SELECTED) {
-                com.github.magixsource.intelliy.idp.Project project = (com.github.magixsource.intelliy.idp.Project) projectComboBox.getSelectedItem();
+                com.github.magixsource.intelliy.idp.model.Project project = (com.github.magixsource.intelliy.idp.model.Project) projectComboBox.getSelectedItem();
                 initEnv(baseApi, privateToken, project);
             }
         });
     }
 
-    private void initEnv(String baseApi, String privateToken, com.github.magixsource.intelliy.idp.Project project) {
+    private void initEnv(String baseApi, String privateToken, com.github.magixsource.intelliy.idp.model.Project project) {
         // query projects by private token
         Integer projectId = project.getId();
-        List<Env> envs = idpService.getEnvs(baseApi, privateToken, projectId);
+        List<Env> envs = idpService.getEnvironments(baseApi, privateToken, projectId);
         ComboBoxModel aModel = new CollectionComboBoxModel(envs);
         envComboBox.setModel(aModel);
         envComboBox.addItemListener(e -> {
@@ -108,7 +104,7 @@ public class LogPanel extends SimpleToolWindowPanel {
     }
 
 
-    private void initPod(String baseApi, String privateToken, com.github.magixsource.intelliy.idp.Project project, Env env) {
+    private void initPod(String baseApi, String privateToken, com.github.magixsource.intelliy.idp.model.Project project, Env env) {
         Integer projectId = project.getId();
         Integer envId = env.getId();
         // List<Instance> instances = idpService.getInstances(baseApi, privateToken, projectId, envId);
@@ -127,12 +123,12 @@ public class LogPanel extends SimpleToolWindowPanel {
         }
     }
 
-    private void getPods(String baseApi, String privateToken, com.github.magixsource.intelliy.idp.Project project) {
+    private void getPods(String baseApi, String privateToken, com.github.magixsource.intelliy.idp.model.Project project) {
         Env env = (Env) envComboBox.getSelectedItem();
         initPod(baseApi, privateToken, project, env);
     }
 
-    private void getLogs(String baseApi, String privateToken, com.github.magixsource.intelliy.idp.Project project, Env env) {
+    private void getLogs(String baseApi, String privateToken, com.github.magixsource.intelliy.idp.model.Project project, Env env) {
         Pod pod = (Pod) instanceComboBox.getSelectedItem();
         idpService.getLogs(baseApi, privateToken, project, env, pod);
     }

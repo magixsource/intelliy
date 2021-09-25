@@ -1,4 +1,4 @@
-package com.github.magixsource.intelliy.idp
+package com.github.magixsource.intelliy.idp.model
 
 data class Instance(val id: Int, val code: String, val appId: Int, val envId: Int, val status: String) {
     override fun toString(): String {

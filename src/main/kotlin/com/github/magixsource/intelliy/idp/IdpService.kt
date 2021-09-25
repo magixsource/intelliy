@@ -1,5 +1,7 @@
 package com.github.magixsource.intelliy.idp
 
+import com.github.magixsource.intelliy.idp.model.*
+import com.github.magixsource.intelliy.listeners.EchoWebSocketListener
 import com.github.magixsource.intelliy.toolwindow.LogPanel
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
@@ -12,16 +14,18 @@ import okhttp3.Response
 
 /**
  * Idp v1 Service
+ * 负责连接i-DP API,实现数据查询与操作
  */
-class IdpService(private val logPanel: LogPanel) {
+class IdpService(logPanel: LogPanel) {
+    private val PRIVATE_TOKEN_KEY = "Private-Token"
     private val client: OkHttpClient = OkHttpClient()
     private val listener: EchoWebSocketListener = EchoWebSocketListener(logPanel)
-    val maxPageSize = 1000
+    private val maxPageSize = 1000
 
 
     /**
-     * get self information
-     * http://y-api.dtyunxi.cn/iam/v1/users/self
+     * get user self information
+     * http://idp-api/iam/v1/users/self
      */
     private fun getSelf(baseApi: String, privateToken: String): User? {
         val req = get(baseApi, "/iam/v1/users/self", privateToken)
@@ -36,8 +40,8 @@ class IdpService(private val logPanel: LogPanel) {
     }
 
     /**
-     * http://y-api.dtyunxi.cn/iam/v1/users/self
-     * http://y-api.dtyunxi.cn/iam/v1/users/87/projects
+     * get project list has assigned to user
+     * http://idp-api/iam/v1/users/{userid}/projects
      */
     fun getProjects(baseApi: String, privateToken: String): List<Project>? {
         val user = getSelf(baseApi, privateToken) ?: return null
@@ -54,9 +58,10 @@ class IdpService(private val logPanel: LogPanel) {
     }
 
     /**
-     * http://y-api.dtyunxi.cn/devops/v1/projects/21/envs?active=true
+     * get active environment of project
+     * http://idp-api/devops/v1/projects/{project_id}/envs?active=true
      */
-    fun getEnvs(baseApi: String, privateToken: String, projectId: Int): List<Env>? {
+    fun getEnvironments(baseApi: String, privateToken: String, projectId: Int): List<Env>? {
         val path = "/devops/v1/projects/$projectId/envs?active=true"
         val req = get(baseApi, path, privateToken)
         val resp = client.newCall(req).execute()
@@ -70,7 +75,8 @@ class IdpService(private val logPanel: LogPanel) {
     }
 
     /**
-     * POST http://y-api.dtyunxi.cn/devops/v1/projects/21/app_instances/list_by_options?page=1&size=15&envId=27
+     * get instance of environment
+     * POST http://idp-api/devops/v1/projects/{project_id}/app_instances/list_by_options?page=1&size={page_size}&envId={env_id}
      */
     fun getInstances(baseApi: String, privateToken: String, projectId: Int, envId: Int): List<Instance>? {
         val path = "/devops/v1/projects/$projectId/app_instances/list_by_options?page=1&size=$maxPageSize&envId=$envId"
@@ -87,7 +93,8 @@ class IdpService(private val logPanel: LogPanel) {
     }
 
     /**
-     * http://y-api.dtyunxi.cn/devops/v1/projects/21/app_pod/list_by_options?page=1&size=15&sort=id,desc&envId=105
+     * get pods of environment
+     * http://idp-api/devops/v1/projects/{project_id}/app_pod/list_by_options?page=1&size=15&sort=id,desc&envId={env_id}
      */
     fun getPods(baseApi: String, privateToken: String, projectId: Int, envId: Int): List<Pod>? {
         val path =
@@ -105,15 +112,8 @@ class IdpService(private val logPanel: LogPanel) {
     }
 
     /**
-     * http://y-api.dtyunxi.cn/devops/v1/projects/21/app_instances/2686/resources
-     * http://y-api.dtyunxi.cn/devops/v1/projects/21/app_pod/list_by_options?page=1&size=15&sort=id,desc&envId=105&appId=1954
-     *
-     * http://y-api.dtyunxi.cn/devops/v1/projects/21/app_pod/2073/containers/logs
-     *
-     * [{"podName":"picbur-d1b80-566d469957-lvlcx","containerName":"picbur-d1b80","logId":"b91475d3-e415-4d90-8103-677061cadf32"}]
-     *
-     * ws://y-devops.dtyunxi.cn/ws/log?key=cluster:106.log:b91475d3-e415-4d90-8103-677061cadf32&env=lppz-demo&podName=picbur-d1b80-566d469957-lvlcx&containerName=picbur-d1b80&logId=b91475d3-e415-4d90-8103-677061cadf32&token=GA1.2.1213895659.1585043447;%20monitorCustomerKey
-     *
+     * get pod log by web socket
+     * ws://idp-devops/ws/log?key=cluster:106
      */
     fun getLogs(
         baseApi: String,
@@ -122,7 +122,6 @@ class IdpService(private val logPanel: LogPanel) {
         env: Env,
         pod: Pod
     ) {
-        println("--------------------get log-----------------------------------")
         val containerLogs = getContainerLog(baseApi, privateToken, project, pod)
         checkNotNull(containerLogs)
         // get first element as default container
@@ -137,22 +136,17 @@ class IdpService(private val logPanel: LogPanel) {
         val podName = pod.name
         val containerName = containerLog.containerName
 
-        // How to get token by ws ?
-        // val token = "GA1.2.1213895659.1585043447; monitorCustomerKey"
-        // val token = privateToken
-
         val path =
             "/ws/log?key=$key&env=$envCode&podName=$podName&containerName=$containerName&logId=$logId&privateToken=$privateToken"
         val url = base + path
-        println("====url is $url")
         val request = Request.Builder().url(url).build()
-        listener
         client.newWebSocket(request, listener)
         //client.dispatcher.executorService.shutdown()
     }
 
     /**
-     * http://y-api.dtyunxi.cn/devops/v1/projects/21/app_pod/2073/containers/logs
+     * get container log
+     * http://idp-api/devops/v1/projects/{project_id}/app_pod/{pod_id}/containers/logs
      */
     private fun getContainerLog(
         baseApi: String,
@@ -164,8 +158,6 @@ class IdpService(private val logPanel: LogPanel) {
         val path = "/devops/v1/projects/$projectId/app_pod/$podId/containers/logs"
         val req = get(baseApi, path, privateToken)
         val resp = client.newCall(req).execute()
-        val headers = resp.headers
-        println(headers)
         val type = object : TypeToken<List<ContainerLog>>() {}.type
         val body = parseResponse(resp)
         return if (body.isNotEmpty()) {
@@ -176,22 +168,19 @@ class IdpService(private val logPanel: LogPanel) {
     }
 
     private fun parseResponse(resp: Response): String {
-        val body = resp.body?.string() ?: ""
-//        println("===response body $body")
-        return body
-
+        return resp.body?.string() ?: ""
     }
 
     private fun post(baseApi: String, path: String, privateToken: String, queryBody: String): Request {
         val mediaType = "application/json; charset=utf-8".toMediaType()
         val url = baseApi + path
         val requestBody = queryBody.toRequestBody(mediaType)
-        return Request.Builder().url(url).addHeader("Private-Token", privateToken).post(requestBody).build()
+        return Request.Builder().url(url).addHeader(PRIVATE_TOKEN_KEY, privateToken).post(requestBody).build()
     }
 
     private fun get(baseApi: String, path: String, privateToken: String): Request {
         var url = baseApi + path
-        return Request.Builder().url(url).addHeader("Private-Token", privateToken).build()
+        return Request.Builder().url(url).addHeader(PRIVATE_TOKEN_KEY, privateToken).build()
     }
 
 }

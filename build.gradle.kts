@@ -27,6 +27,9 @@ repositories {
     mavenCentral()
 }
 dependencies {
+    implementation("com.squareup.okhttp3:okhttp:4.3.1")
+    implementation("com.google.code.gson:gson:2.8.4")
+//    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.2.2")
     detektPlugins("io.gitlab.arturbosch.detekt:detekt-formatting:1.17.1")
 }
 

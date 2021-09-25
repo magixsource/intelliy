@@ -7,13 +7,41 @@
     <!-- https://plugins.jetbrains.com/docs/intellij/plugin-compatibility.html -->
     <depends>com.intellij.modules.platform</depends>
 
+    <!--    <extensions defaultExtensionNs="com.intellij">-->
+    <!--        <applicationService serviceImplementation="com.github.magixsource.intelliy.services.MyApplicationService"/>-->
+    <!--        <projectService serviceImplementation="com.github.magixsource.intelliy.services.MyProjectService"/>-->
+    <!--    </extensions>-->
+
+    <!--    <applicationListeners>-->
+    <!--        <listener class="com.github.magixsource.intelliy.listeners.MyProjectManagerListener"-->
+    <!--                  topic="com.intellij.openapi.project.ProjectManagerListener"/>-->
+    <!--    </applicationListeners>-->
     <extensions defaultExtensionNs="com.intellij">
-        <applicationService serviceImplementation="com.github.magixsource.intelliy.services.MyApplicationService"/>
-        <projectService serviceImplementation="com.github.magixsource.intelliy.services.MyProjectService"/>
+        <applicationConfigurable parentId="tools" id="com.github.magixsource.intelliy.setting.YxSettingsConfigurable"
+                                 instance="com.github.magixsource.intelliy.setting.YxSettingsConfigurable"
+                                 displayName="I-DP Toolkit"/>
+        <applicationService serviceImplementation="com.github.magixsource.intelliy.setting.YxSettings"/>
+
+        <toolWindow id="I-DP Log" secondary="true" canCloseContents="true"
+                    anchor="bottom" icon="AllIcons.Actions.Preview"
+                    factoryClass="com.github.magixsource.intelliy.toolwindow.LogToolWindowFactory"/>
     </extensions>
 
-    <applicationListeners>
-        <listener class="com.github.magixsource.intelliy.listeners.MyProjectManagerListener"
-                  topic="com.intellij.openapi.project.ProjectManagerListener"/>
-    </applicationListeners>
+    <actions>
+        <group id="YunxiToolkitMenu" class="com.github.magixsource.intelliy.actions.ToolkitGroup" popup="true"
+               text="Yunxi Toolkit" description="Yunxi toolkit group" icon="/icons/yunxi.svg">
+            <add-to-group group-id="ToolsMenu" anchor="last"/>
+        </group>
+        <action id="com.github.magixsource.intelliy.actions.SettingAction"
+                class="com.github.magixsource.intelliy.actions.SettingAction"
+                text="Settings"
+                description="Private-token and Preferences">
+            <add-to-group group-id="YunxiToolkitMenu" anchor="first"/>
+        </action>
+        <action id="idpPluginSetting" class="com.github.magixsource.intelliy.actions.LogAction" text="Logs"
+                description="Display logs of instance">
+            <add-to-group group-id="YunxiToolkitMenu" anchor="after"
+                          relative-to-action="com.github.magixsource.intelliy.actions.SettingAction"/>
+        </action>
+    </actions>
 </idea-plugin>

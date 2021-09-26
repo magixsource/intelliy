@@ -11,17 +11,24 @@ import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
 import okhttp3.Response
+import okhttp3.WebSocket
 
 /**
  * Idp v1 Service
  * 负责连接i-DP API,实现数据查询与操作
  */
 class IdpService(logPanel: LogPanel) {
+    private lateinit var webSocket: WebSocket
     private val PRIVATE_TOKEN_KEY = "Private-Token"
     private val client: OkHttpClient = OkHttpClient()
     private val listener: EchoWebSocketListener = EchoWebSocketListener(logPanel)
     private val maxPageSize = 1000
 
+    private var lastBaseApi = ""
+    private var lastPrivateToken = ""
+    private var lastProject = Project(-1, "", "")
+    private var lastEnv = Env(-1, "", "", false)
+    private var lastPod = Pod(-1, -1, false, "", -1, "", "", "")
 
     /**
      * get user self information
@@ -122,6 +129,14 @@ class IdpService(logPanel: LogPanel) {
         env: Env,
         pod: Pod
     ) {
+        // clear web socket before create a new connect
+        closeWebSocket()
+
+        lastBaseApi = baseApi
+        lastPrivateToken = privateToken
+        lastProject = project
+        lastEnv = env
+        lastPod = pod
         val containerLogs = getContainerLog(baseApi, privateToken, project, pod)
         checkNotNull(containerLogs)
         // get first element as default container
@@ -140,7 +155,7 @@ class IdpService(logPanel: LogPanel) {
             "/ws/log?key=$key&env=$envCode&podName=$podName&containerName=$containerName&logId=$logId&privateToken=$privateToken"
         val url = base + path
         val request = Request.Builder().url(url).build()
-        client.newWebSocket(request, listener)
+        this.webSocket = client.newWebSocket(request, listener)
         //client.dispatcher.executorService.shutdown()
     }
 
@@ -179,8 +194,25 @@ class IdpService(logPanel: LogPanel) {
     }
 
     private fun get(baseApi: String, path: String, privateToken: String): Request {
-        var url = baseApi + path
+        val url = baseApi + path
         return Request.Builder().url(url).addHeader(PRIVATE_TOKEN_KEY, privateToken).build()
+    }
+
+    /**
+     * try to close exist web socket
+     */
+    fun closeWebSocket() {
+        try {
+            webSocket.close(1001, "手工停止")
+        } catch (e: Exception) {
+            println("close web socket error. ${e.cause}")
+        }
+
+    }
+
+    fun connectWebSocket() {
+        println("re connect web socket")
+        getLogs(lastBaseApi, lastPrivateToken, lastProject, lastEnv, lastPod)
     }
 
 }

@@ -1,9 +1,10 @@
 package com.github.magixsource.intelliy.toolwindow;
 
-import com.github.magixsource.intelliy.idp.model.Env;
 import com.github.magixsource.intelliy.idp.IdpService;
+import com.github.magixsource.intelliy.idp.model.Env;
 import com.github.magixsource.intelliy.idp.model.Pod;
 import com.github.magixsource.intelliy.setting.YxSettings;
+import com.intellij.icons.AllIcons;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.SimpleToolWindowPanel;
 import com.intellij.ui.CollectionComboBoxModel;
@@ -21,50 +22,80 @@ public class LogPanel extends SimpleToolWindowPanel {
     private JButton stopButton;
     private JButton clearButton;
     private JPanel rootContainer;
+    private JButton scrollButton;
 
     private static final int timeoutMillis = 3 * 1000;
     private static final int maxTimes = 1000;
-    private static boolean isStart = true;
 
-//    private Thread consoleThread = null;
+
+    // determine is log content scroll down
+    private boolean isScrollDown = true;
+    // determine is web socket connected
+    private boolean isWebSocketConnected = true;
+
+    //    private Thread consoleThread = null;
     IdpService idpService = new IdpService(this);
+    private Pod lastPod;
+
 
     /**
      * render log to console
+     *
      * @param log log content
      */
     public void render(String log) {
         logTextArea.append(log);
         logTextArea.append("\n");
         // scroll down
-        logTextArea.setCaretPosition(logTextArea.getDocument().getLength());
+        if (isScrollDown) {
+            logTextArea.setCaretPosition(logTextArea.getDocument().getLength());
+        }
     }
-
 
     public LogPanel(Project project) {
         super(false);
         System.out.println("Log panel init");
         logTextArea.append("Hello from LogPanel! \n");
 
-//        stopButton.addActionListener(e -> {
-//            if (isStart) {
-//                isStart = false;
-//                // stopButton.setText("Stop");
-//                stopButton.setIcon(AllIcons.Actions.Resume);
-//                consoleThread.stop();
-//            } else {
-//                isStart = true;
-//                // stopButton.setText("Start");
-//                stopButton.setIcon(AllIcons.Actions.Restart);
-//                consoleThread.start();
-//            }
-//        });
+        stopButton.addActionListener(e -> {
+            if (isWebSocketConnected) {
+                // close
+                closeWebSocket();
+                isWebSocketConnected = false;
+                stopButton.setIcon(AllIcons.Actions.Resume);
+            } else {
+                // connect
+                connectWebSocket();
+                isWebSocketConnected = true;
+                stopButton.setIcon(AllIcons.Actions.Restart);
+            }
+
+        });
 
         clearButton.addActionListener(e -> {
             logTextArea.setText("");
         });
 
+        // toggle scroll down
+        scrollButton.addActionListener(e -> {
+            this.setScrollDown(!this.isScrollDown());
+        });
+
         initProject();
+    }
+
+    /**
+     * connect web socket
+     */
+    private void connectWebSocket() {
+        idpService.connectWebSocket();
+    }
+
+    /**
+     * try to close web socket
+     */
+    private void closeWebSocket() {
+        idpService.closeWebSocket();
     }
 
     /**
@@ -130,23 +161,21 @@ public class LogPanel extends SimpleToolWindowPanel {
 
     private void getLogs(String baseApi, String privateToken, com.github.magixsource.intelliy.idp.model.Project project, Env env) {
         Pod pod = (Pod) instanceComboBox.getSelectedItem();
+        assert pod != null;
+        if (pod.equals(lastPod)) {
+            return;
+        }
+        lastPod = pod;
         idpService.getLogs(baseApi, privateToken, project, env, pod);
     }
 
-//    private void initThread() {
-//        consoleThread = new Thread(() -> {
-//            try {
-//                while (true) {
-//                    // console.print("Hello, time now is: " + new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(new Date()), ConsoleViewContentType.NORMAL_OUTPUT);
-//                    logTextArea.append("Hello, time now is: " + new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(new Date()) + "\n");
-//                    Thread.sleep(timeoutMillis);
-//                }
-//            } catch (InterruptedException e) {
-//                e.printStackTrace();
-//            }
-//        });
-//
-//    }
+    public boolean isScrollDown() {
+        return isScrollDown;
+    }
+
+    public void setScrollDown(boolean scrollDown) {
+        isScrollDown = scrollDown;
+    }
 
 
     public void setData(LogPanel data) {
